@@ -173,6 +173,37 @@ const lc = async (options: {
   }
 }
 
+const balance = async (options: {
+  seed: string
+  network: NetworkNames
+  rpc: string
+}): Promise<void> => {
+  try {
+    const seed = options.seed
+
+    let rpcUrl: string
+    if (typeof (NETWORK_RPC_URLS[options.network]) === 'undefined') {
+      rpcUrl = options.rpc
+    } else {
+      rpcUrl = NETWORK_RPC_URLS[options.network]
+    }
+
+    const tempConsoleWarn = console.warn
+    console.warn = () => { }
+    const api = await initialize(rpcUrl, { noInitWarn: true })
+    console.warn = tempConsoleWarn
+    const keyring = getKeyringFromSeed(seed)
+
+    const data = await api.query.system.account(keyring.address)
+    console.log(data.toHuman())
+    // console.log(`✅ ${value} AVL successfully sent to ${to}`)
+    process.exit(0)
+  } catch (err) {
+    console.error(err)
+    process.exit(1)
+  }
+}
+
 program
   .command('transfer').description('Transfer AVL token to another account')
   .addOption(new Option('-n, --network <network name>', 'network name').choices(['kate', 'goldberg', 'local']).default('goldberg').conflicts('rpc'))
@@ -200,5 +231,13 @@ program
   .addOption(new Option('-n, --network <network name>', 'network name').choices(['kate', 'goldberg', 'local']).default('goldberg').makeOptionMandatory())
   .option('-c, --config <path to config file>', 'the config file to use')
   .action(lc)
+
+program
+  .command('balance').description('Retrieve AVL balance account')
+  .addOption(new Option('-n, --network <network name>', 'network name').choices(['kate', 'goldberg', 'local']).default('goldberg').conflicts('rpc'))
+  .addOption(new Option('-r, --rpc <RPC url>', 'the RPC url to connect to').env('AVAIL_RPC_URL').default(NETWORK_RPC_URLS.goldberg))
+  .addOption(new Option('-s, --seed <seed phrase>', 'the seed phrase for the Avail account').env('AVAIL_SEED').makeOptionMandatory())
+  .addOption(new Option('-w, --wait <status>', 'wait for extrinsic inclusion').choices(['yes', 'no', 'final']).default('yes'))
+  .action(balance)
 
 program.parse()

@@ -173,7 +173,7 @@ const lc = async (options: {
   }
 }
 
-const balance = async (options: {
+const balance = async (account: string, options: {
   seed: string
   network: NetworkNames
   rpc: string
@@ -193,9 +193,11 @@ const balance = async (options: {
     const api = await initialize(rpcUrl, { noInitWarn: true })
     console.warn = tempConsoleWarn
     const keyring = getKeyringFromSeed(seed)
-
-    const data = await api.query.system.account(keyring.address)
-    console.log(data.toHuman())
+    console.log("account", account)
+    const queryAccount = account ? account : keyring.address
+    const dataAccount: any = await api.query.system.account(queryAccount)
+    const { data: { free } } = dataAccount.toHuman();
+    console.log(free)
     // console.log(`✅ ${value} AVL successfully sent to ${to}`)
     process.exit(0)
   } catch (err) {
@@ -238,6 +240,7 @@ program
   .addOption(new Option('-r, --rpc <RPC url>', 'the RPC url to connect to').env('AVAIL_RPC_URL').default(NETWORK_RPC_URLS.goldberg))
   .addOption(new Option('-s, --seed <seed phrase>', 'the seed phrase for the Avail account').env('AVAIL_SEED').makeOptionMandatory())
   .addOption(new Option('-w, --wait <status>', 'wait for extrinsic inclusion').choices(['yes', 'no', 'final']).default('yes'))
+  .addArgument(new Argument('<account>', 'the address account'))
   .action(balance)
 
 program.parse()
